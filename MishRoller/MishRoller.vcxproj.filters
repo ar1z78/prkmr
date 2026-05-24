@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{9cb12ff4-9ec7-46bd-848c-05b122f897ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{7d201a63-fad3-4211-9941-a992b65ed937}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sqlite3">
+      <UniqueIdentifier>{1324c5cc-da21-4b1d-946c-936cf10c5960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GUI">
+      <UniqueIdentifier>{6d072e73-70d2-45b8-a35c-ce1a3c1326e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Resource">
+      <UniqueIdentifier>{c6601cea-58e0-4e7d-bde1-134b8394b4e3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="hook.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="mission.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreUtils.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="aomd.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="rdb.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Settings_UI.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="settings_core_ui.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="settings_data.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="ImpExp.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="missions_UI.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="missions_core_UI.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Search_UI.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="shared_UI.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="menu.c">
+      <Filter>Source\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>Sqlite3</Filter>
+    </ClCompile>
+    <ClCompile Include="MishRoller.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RollingAgent.c">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>Headers\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mission.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="BuyingAgent.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="aomd.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="rdb.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreUtils.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="missions_UI.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ImpExp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>Sqlite3</Filter>
+    </ClInclude>
+    <ClInclude Include="MishRoller.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cs.ico">
+      <Filter>Headers\Resource</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MishRoller.rc">
+      <Filter>Headers\Resource</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
