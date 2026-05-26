@@ -291,136 +291,99 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	}
 
 	case MRAM_NEWMISSIONS: {
-							   void* pMissionData = NULL;
+							   void* pMissionData = g_CurrentPacket;
+							   char szBuffer[16] = { 0 };
 
 							   // 1. EXTRACT AUTOMATION ATTEMPTS COUNTER
 							   if (!g_BuyingAgentCount && g_bFullscreen) {
-								   char szBuffer[16] = { 0 };
 								   GetWindowTextA(g_hwndTriesEdit, szBuffer, sizeof(szBuffer)-1);
 								   g_BuyingAgentCount = strtoul(szBuffer, NULL, 10);
 							   }
 
-							   // 2. ACTIVE AUTOMATED SELECTION ROUTINE
-							   if (g_BuyingAgentCount) {
-								   pMissionData = g_CurrentPacket;
-
-								   WaitForSingleObject(g_Mutex, INFINITE);
-								   g_FoundMish = 255;
-								   for (g_MishNumber = 0; g_MishNumber < 5; g_MishNumber++) {
-									   pMissionData = (void*)MissionParse(0, &g_MissionSlots, (unsigned char*)pMissionData);
-									   if (!pMissionData) {
-										   break;
-									   }
+							   // 2. SINGLE UNIFIED PARSING PASS (Replaces both previous loops)
+							   WaitForSingleObject(g_Mutex, INFINITE);
+							   g_FoundMish = 255;
+							   for (g_MishNumber = 0; g_MishNumber < 5; g_MishNumber++) {
+								   void* pLastData = pMissionData;
+								   // FIXED: Removed [g_MishNumber] to pass the singular struct instance address safely
+								   pMissionData = (void*)MissionParse(0, &g_MissionSlots, (unsigned char*)pMissionData);
+								   if (!pMissionData) {
+									   pMissionData = pLastData; // Fallback to last valid pointer on error
+									   break;
 								   }
-								   ReleaseMutex(g_Mutex);
+							   }
+							   ReleaseMutex(g_Mutex);
 
-								   if (g_BuyingAgentCount) {
-									   BuyingAgent();
+
+							   // 3. AUTOMATION STATE MANAGEMENT
+							   if (g_BuyingAgentCount) {
+								   if (g_BuyingAgentCount) BuyingAgent(); else EndBuyingAgent();
+							   }
+
+							   // 4. RENDERING & UI REFRESH
+							   if (g_hwndMishBoard) {
+								   RedrawWindow(g_hwndMishBoard, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN);
+								   if (pMissionData && !g_bFullscreen && IsIconic(g_hwndMishBoard)) {
+									   ShowWindow(g_hwndMishBoard, SW_RESTORE);
+								   }
+							   }
+
+							   // 5. AUDIO ALERTS
+							   if (g_Settings.bSounds) {
+								   PlaySoundA((g_FoundMish == 255) ? "notfound.wav" : "found.wav", NULL, SND_FILENAME | SND_NODEFAULT | SND_ASYNC);
+							   }
+
+							   // 6. MACRO AUTOMATION (MOUSE CLICKS & KEISTROKES)
+							   if ((g_Settings.bSelectMatch || g_BuyingAgentMissions) && g_FoundMish != 255 && msg != MRAM_STOPBUYINGAGENT) {
+								   HWND AOWnd = FindWindowA("Anarchy client", NULL);
+								   if (!AOWnd) {
+									   ShowErrorMessage("Project Rubi-Ka is not running.");
+									   g_BuyingAgentCount = 0;
 								   }
 								   else {
-									   EndBuyingAgent();
+									   POINT MousePos;
+									   LPARAM clickParam;
+
+									   // Target the matched mission slot
+									   MousePos.x = 44 + ((g_FoundMish % 3) * 58);
+									   MousePos.y = 57 + ((g_FoundMish / 3) * 57);
+									   clickParam = (MousePos.y << 16) | MousePos.x;
+
+									   ClientToScreen(AOWnd, &MousePos);
+									   SetCursorPos(MousePos.x, MousePos.y);
+									   SendMessageA(AOWnd, WM_LBUTTONDOWN, 0, clickParam); Sleep(50);
+									   SendMessageA(AOWnd, WM_LBUTTONUP, 0, clickParam);   Sleep(250);
+
+									   // Click "Accept" button
+									   MousePos.x = 76; MousePos.y = 321;
+									   clickParam = (MousePos.y << 16) | MousePos.x;
+									   ClientToScreen(AOWnd, &MousePos);
+									   SetCursorPos(MousePos.x, MousePos.y);
+
+									   if (g_BuyingAgentMissions) {
+										   SendMessageA(AOWnd, WM_LBUTTONDOWN, 0, clickParam); Sleep(50);
+										   SendMessageA(AOWnd, WM_LBUTTONUP, 0, clickParam);   Sleep(250);
+
+										   // Hit 'E' to open the item/mission terminal again
+										   SendMessageA(AOWnd, WM_KEYDOWN, 0x45, 0); Sleep(50);
+										   SendMessageA(AOWnd, WM_KEYUP, 0x45, 0);   Sleep(250);
+
+										   _setSliders(g_Settings.Sliders[0], g_Settings.Sliders[1], g_Settings.Sliders[2],
+											   g_Settings.Sliders[3], g_Settings.Sliders[4], g_Settings.Sliders[5], g_Settings.Sliders[6]);
+
+										   g_bFirstRound = TRUE;
+										   GetWindowTextA(g_hwndTriesEdit, szBuffer, sizeof(szBuffer)-1);
+										   g_BuyingAgentCount = strtoul(szBuffer, NULL, 10);
+
+										   BuyingAgent();
+										   g_BuyingAgentMissions--;
+									   }
 								   }
 							   }
-
-							   // 3. REGULAR WINDOW CANVAS RENDERING ACTIONS
-							   {
-								   pMissionData = g_CurrentPacket;
-
-								   WaitForSingleObject(g_Mutex, INFINITE);
-								   g_FoundMish = 255;
-								   for (g_MishNumber = 0; g_MishNumber < 5; g_MishNumber++) {
-									   void *pLastMissionData = pMissionData;
-									   pMissionData = (void*)MissionParse(0, &g_MissionSlots, (unsigned char*)pMissionData);
-									   if (!pMissionData) {
-										   pMissionData = pLastMissionData;
-									   }
-								   }
-								   ReleaseMutex(g_Mutex);
-
-								   // Update the visual metrics layouts
-								   if (g_hwndMishBoard != NULL) {
-									   RedrawWindow(g_hwndMishBoard, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_ALLCHILDREN);
-								   }
-
-								   if (pMissionData && !g_bFullscreen) {
-									   if (IsIconic(g_hwndMishBoard)) {
-										   ShowWindow(g_hwndMishBoard, SW_RESTORE);
-									   }
-								   }
-
-								   // 4. SOUND INDICATORS
-								   if (g_Settings.bSounds) {
-									   if (g_FoundMish == 255 && !g_BuyingAgentCount) {
-										   PlaySoundA("notfound.wav", NULL, SND_FILENAME | SND_NODEFAULT | SND_ASYNC);
-									   }
-									   else if (g_FoundMish != 255){
-										   PlaySoundA("found.wav", NULL, SND_FILENAME | SND_NODEFAULT | SND_ASYNC);
-									   }
-								   }
-
-								   // move mouse to select mishes
-								   if (g_Settings.bSelectMatch || g_BuyingAgentMissions) {
-									   HWND AOWnd = FindWindowA("Anarchy client", NULL);
-									   if (!AOWnd) {
-										   ShowErrorMessage("Project Rubi-Ka is not running.");
-										   g_BuyingAgentCount = 0;
-									   }
-
-									   if (g_FoundMish != 255 && (msg != MRAM_STOPBUYINGAGENT)) {
-										   POINT MousePos;
-										   LPARAM clickParam;
-
-										   WriteLog(NULL);
-
-										   MousePos.x = 44 + ((g_FoundMish % 3) * 58);
-										   MousePos.y = 57 + ((g_FoundMish / 3) * 57);
-										   clickParam = (MousePos.y << 16) | MousePos.x;
-
-										   ClientToScreen(AOWnd, &MousePos);
-										   SetCursorPos(MousePos.x, MousePos.y);
-
-										   SendMessageA(AOWnd, WM_LBUTTONDOWN, 0, clickParam);
-										   Sleep(50);
-										   SendMessageA(AOWnd, WM_LBUTTONUP, 0, clickParam);
-										   Sleep(250);
-
-										   MousePos.x = 76; MousePos.y = 321;
-										   clickParam = (MousePos.y << 16) | MousePos.x;
-										   ClientToScreen(AOWnd, &MousePos);
-										   SetCursorPos(MousePos.x, MousePos.y);
-
-										   if (g_BuyingAgentMissions) {
-											   SendMessageA(AOWnd, WM_LBUTTONDOWN, 0, clickParam);
-											   Sleep(50);
-											   SendMessageA(AOWnd, WM_LBUTTONUP, 0, clickParam);
-											   Sleep(250);
-
-											   SendMessageA(AOWnd, WM_KEYDOWN, 0x45, 0); // 'E' Key
-											   Sleep(50);
-											   SendMessageA(AOWnd, WM_KEYUP, 0x45, 0);
-											   Sleep(250);
-
-											   _setSliders(
-												   g_Settings.Sliders[0], g_Settings.Sliders[1], g_Settings.Sliders[2],
-												   g_Settings.Sliders[3], g_Settings.Sliders[4], g_Settings.Sliders[5],
-												   g_Settings.Sliders[6]
-												   );
-
-											   g_bFirstRound = TRUE;
-
-											   char szTriesBuf[16] = { 0 };
-											   GetWindowTextA(g_hwndTriesEdit, szTriesBuf, sizeof(szTriesBuf)-1);
-											   g_BuyingAgentCount = strtoul(szTriesBuf, NULL, 10);
-
-											   BuyingAgent();
-											   g_BuyingAgentMissions--;
-										   }
-									   }
-								   }
-								   WriteLog(NULL);
-							   }
+							   WriteLog(NULL);
 							   return 0;
 	}
+
 
 
 

@@ -307,7 +307,6 @@ void CreateSearchWindow(HWND hwndParent) {
 	LPCWSTR groupTitles[2];
 	int baseListIDs[2];
 	int baseEditIDs[2];
-	int baseBtnAddIDs[2];
 	int baseChkBuyIDs[2];
 	int baseChkHighIDs[2];
 
@@ -321,9 +320,7 @@ void CreateSearchWindow(HWND hwndParent) {
 	int mOptWidths[2];
 	int mOptOffsets[2];
 
-	LPCWSTR actionLabels[4];
-	int btnWidths[4];
-	int btnOffsets[4];
+	
 
 	LPCWSTR subWarn = L"A match in this section will count as an ITEM MATCH\nMake sure you have those enabled if you want to search for values";
 
@@ -331,20 +328,14 @@ void CreateSearchWindow(HWND hwndParent) {
 	groupTitles[0] = L"Item list";     groupTitles[1] = L"Location list";
 	baseListIDs[0] = IDC_SEARCH_ITEM_LIST;     baseListIDs[1] = IDC_SEARCH_LOC_LIST;
 	baseEditIDs[0] = IDC_SEARCH_ITEM_EDITBOX;  baseEditIDs[1] = IDC_SEARCH_LOC_EDITBOX;
-	baseBtnAddIDs[0] = IDC_SEARCH_ITEM_ADD;     baseBtnAddIDs[1] = IDC_SEARCH_LOC_ADD;
 	baseChkBuyIDs[0] = IDC_SEARCH_ITEM_CHK_BUY;  baseChkBuyIDs[1] = IDC_SEARCH_LOC_CHK_BUY;
 	baseChkHighIDs[0] = IDC_SEARCH_ITEM_CHK_HIGH; baseChkHighIDs[1] = IDC_SEARCH_LOC_CHK_HIGH;
 
-	/* Initialize Action Row Buttons Layout Arrays */
-	actionLabels[0] = L"Add";    actionLabels[1] = L"Update"; actionLabels[2] = L"Remove"; actionLabels[3] = L"Clear";
-	btnWidths[0] = 86;       btnWidths[1] = 86;       btnWidths[2] = 86;        btnWidths[3] = 90;
-	btnOffsets[0] = 12;      btnOffsets[1] = 102;     btnOffsets[2] = 192;      btnOffsets[3] = 282;
-
 	/* Initialize Mission Type Checklist Arrays */
-	mTypeLabels[0] = L"Repair"; mTypeLabels[1] = L"Return"; mTypeLabels[2] = L"Person"; mTypeLabels[3] = L"Find Item"; mTypeLabels[4] = L"Kill Person";
+	mTypeLabels[0] = L"Repair"; mTypeLabels[1] = L"Return"; mTypeLabels[2] = L"Find Person"; mTypeLabels[3] = L"Find Item"; mTypeLabels[4] = L"Kill Person";
 	mTypeIDs[0] = IDC_SEARCH_CHK_REPAIR; mTypeIDs[1] = IDC_SEARCH_CHK_RETURN; mTypeIDs[2] = IDC_SEARCH_CHK_PERSON; mTypeIDs[3] = IDC_SEARCH_CHK_ITEM; mTypeIDs[4] = IDC_SEARCH_CHK_KILL;
-	mTypeWidths[0] = 65; mTypeWidths[1] = 65; mTypeWidths[2] = 65; mTypeWidths[3] = 70; mTypeWidths[4] = 75;
-	mTypeOffsets[0] = 15; mTypeOffsets[1] = 80; mTypeOffsets[2] = 145; mTypeOffsets[3] = 210; mTypeOffsets[4] = 290;
+	mTypeWidths[0] = 100; mTypeWidths[1] = 100; mTypeWidths[2] = 100; mTypeWidths[3] = 100; mTypeWidths[4] = 100;
+	mTypeOffsets[0] = 30; mTypeOffsets[1] = 150; mTypeOffsets[2] = 270; mTypeOffsets[3] = 100; mTypeOffsets[4] = 200;
 
 	/* Initialize Mission Global Configuration Arrays */
 	mOptLabels[0] = L"Match in Rolling Agent"; mOptLabels[1] = L"Highlight Matches";
@@ -368,19 +359,19 @@ void CreateSearchWindow(HWND hwndParent) {
 
 	/* --- COLUMN 1 & COLUMN 2 SEAMLESS REUSABLE LOOP (Item & Location Sections) --- */
 	for (i = 0; i < 2; ++i) {
-		int yShift = i * 200;
+		int yShift = i * 210;
 
 		/* Group Box Header Frame */
-		ctrl = CreateWindowExW(0, L"BUTTON", groupTitles[i], WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 5, 5 + yShift, 375, 195, hwndSearch, NULL, hInst, NULL);
+		ctrl = CreateWindowExW(0, L"BUTTON", groupTitles[i], WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 5, 5 + yShift, 375, 210, hwndSearch, NULL, hInst, NULL);
 		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 
 		/* ListBox Elements */
-		ctrl = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", L"", WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOTIFY | WS_TABSTOP, 12, 22 + yShift, 360, 95, hwndSearch, (HMENU)(INT_PTR)baseListIDs[i], hInst, NULL);
+		ctrl = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", L"", WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOTIFY | WS_TABSTOP, 12, 22 + yShift, 360, 120, hwndSearch, (HMENU)(INT_PTR)baseListIDs[i], hInst, NULL);
 		SendMessageA(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 		SetWindowSubclass(ctrl, ListBoxSubclassProc, baseListIDs[i], 0);
 
 		/* Edit Control Fields */
-		ctrl = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 12, 122 + yShift, 360, 20, hwndSearch, (HMENU)(INT_PTR)baseEditIDs[i], hInst, NULL);
+		ctrl = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL, 12, 139 + yShift, 360, 20, hwndSearch, (HMENU)(INT_PTR)baseEditIDs[i], hInst, NULL);
 		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 		SetWindowSubclass(ctrl, TextBoxSubclassProc, baseEditIDs[i], 0);
 
@@ -396,31 +387,34 @@ void CreateSearchWindow(HWND hwndParent) {
 			int targetButtonID = (i == 0) ? itemBtnIDs[b] : locBtnIDs[b];
 
 			ctrl = CreateWindowExW(0, L"BUTTON", actionLabels[b], WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
-				btnOffsets[b], 144 + yShift, btnWidths[b], 23, hwndSearch, (HMENU)(INT_PTR)targetButtonID, hInst, NULL);
+				btnOffsets[b], 164 + yShift, btnWidths[b], 23, hwndSearch, (HMENU)(INT_PTR)targetButtonID, hInst, NULL);
 			SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 		}
 
-
 		/* Configuration Target Checkboxes (Swapped to BS_OWNERDRAW and expanded to Height=20 to prevent clipping) */
-		ctrl = CreateWindowExW(0, L"BUTTON", L"Match in Rolling Agent", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 15, 172 + yShift, 150, 20, hwndSearch, (HMENU)(INT_PTR)baseChkBuyIDs[i], hInst, NULL);
+		ctrl = CreateWindowExW(0, L"BUTTON", L"Match in Rolling Agent", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 15, 192 + yShift, 150, 20, hwndSearch, (HMENU)(INT_PTR)baseChkBuyIDs[i], hInst, NULL);
 		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 
-		ctrl = CreateWindowExW(0, L"BUTTON", L"Highlight Matches", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 215, 172 + yShift, 130, 20, hwndSearch, (HMENU)(INT_PTR)baseChkHighIDs[i], hInst, NULL);
+		ctrl = CreateWindowExW(0, L"BUTTON", L"Highlight Matches", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 215, 192 + yShift, 130, 20, hwndSearch, (HMENU)(INT_PTR)baseChkHighIDs[i], hInst, NULL);
 		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 	}
 
 	/* --- SECTION 3: MISSION TYPES CONTAINER FRAME --- */
-	ctrl = CreateWindowExW(0, L"BUTTON", L"Mission types", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 5, 405, 375, 65, hwndSearch, NULL, hInst, NULL);
+	ctrl = CreateWindowExW(0, L"BUTTON", L"Mission Search Options", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 5, 425, 375, 100, hwndSearch, NULL, hInst, NULL);
 	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 
-	for (i = 0; i < 5; ++i) {
-		ctrl = CreateWindowExW(0, L"BUTTON", mTypeLabels[i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, mTypeOffsets[i], 425, mTypeWidths[i], 20, hwndSearch, (HMENU)(INT_PTR)mTypeIDs[i], hInst, NULL);
+	for (i = 0; i < 3; ++i) {
+		ctrl = CreateWindowExW(0, L"BUTTON", mTypeLabels[i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, mTypeOffsets[i], 440, mTypeWidths[i], 24, hwndSearch, (HMENU)(INT_PTR)mTypeIDs[i], hInst, NULL);
+		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+	}
+	for (i = 3; i < 5; ++i) {
+		ctrl = CreateWindowExW(0, L"BUTTON", mTypeLabels[i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, mTypeOffsets[i], 465, mTypeWidths[i], 24, hwndSearch, (HMENU)(INT_PTR)mTypeIDs[i], hInst, NULL);
 		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 	}
 
-	/* --- SECTION 4: MISSION SEARCH SELECTION CONTAINER FRAME --- */
-	ctrl = CreateWindowExW(0, L"BUTTON", L"Mission search options", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 5, 475, 375, 45, hwndSearch, NULL, hInst, NULL);
-	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+	/* --- SECTION 4: MISSION SEARCH SELECTION CONTAINER FRAME/LINE --- */
+	ctrl = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE | SS_ETCHEDHORZ,  5, 490, 375, 2, hwndSearch, NULL, hInst, NULL);
+	//SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 
 	for (i = 0; i < 2; ++i) {
 		ctrl = CreateWindowExW(0, L"BUTTON", mOptLabels[i], WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, mOptOffsets[i], 495, mOptWidths[i], 20, hwndSearch, (HMENU)(INT_PTR)mOptIDs[i], hInst, NULL);

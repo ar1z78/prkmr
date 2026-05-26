@@ -115,11 +115,34 @@ void CreateSettingsWindow(HWND hwndParent) {
 	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 	ctrl = CreateWindowExW(0, L"STATIC", L"Buy Mod:", WS_CHILD | WS_VISIBLE | SS_LEFT, 18, 442, 55, 14, hwndSettings, NULL, hInst, NULL);
 	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
-	ctrl = CreateWindowA("EDIT", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, 75, 439, 20, 20, hwndSettings, (HMENU)IDC_SET_EDIT_BUYMOD, hInst, NULL);
+	//ctrl = CreateWindowA("EDIT", NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, 75, 439, 20, 20, hwndSettings, (HMENU)IDC_SET_EDIT_BUYMOD, hInst, NULL);
+	//SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+	// 1. Create the Combo Box (Replaces the EDIT control)
+	ctrl = CreateWindowA("COMBOBOX", NULL,
+		WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
+		75, 438, 110, 200, // Increased width for text and height for dropdown list
+		hwndSettings, (HMENU)IDC_SET_EDIT_BUYMOD, hInst, NULL);
+
 	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
-	SetDlgItemInt(hwndSettings, IDC_SET_EDIT_BUYMOD, g_Settings.iBuyMod, FALSE);
-	ctrl = CreateWindowExW(0, L"STATIC", L"Clan: 4 / Omni: 5 / Trader Shop: 7", WS_CHILD | WS_VISIBLE | SS_LEFT, 200, 442, 200, 20, hwndSettings, NULL, hInst, NULL);
+
+	// 2. Add the items to the dropdown list
+	SendMessageW(ctrl, CB_ADDSTRING, 0, (LPARAM)L"Clan: 4");
+	SendMessageW(ctrl, CB_ADDSTRING, 0, (LPARAM)L"Omni: 5");
+	SendMessageW(ctrl, CB_ADDSTRING, 0, (LPARAM)L"Trader Shop: 7");
+
+	// 3. Select the default item based on g_Settings.iBuyMod value
+	int defaultIndex = 0; // Default to Clan if no match
+	if (g_Settings.iBuyMod == 5) defaultIndex = 1;
+	else if (g_Settings.iBuyMod == 7) defaultIndex = 2;
+
+	SendMessageW(ctrl, CB_SETCURSEL, defaultIndex, 0);
+	
+
+	//ctrl = CreateWindowExW(0, L"STATIC", L"Clan: 4 / Omni: 5 / Trader Shop: 7", WS_CHILD | WS_VISIBLE | SS_LEFT, 170, 442, 200, 20, hwndSettings, NULL, hInst, NULL);
+	//SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+	ctrl = CreateWindowExW(0, L"BUTTON", L"Show XP/Values in Mission UI", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 200, 439, 180, 22, hwndSettings, (HMENU)IDC_SET_CHK_SHOW_XP_CR, hInst, NULL);
 	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+	CheckDlgButton(hwndSettings, IDC_SET_CHK_SHOW_XP_CR, g_Settings.bShowXPCR, FALSE);
 
 	/* --- VALUE MATCH SEARCH REGIONS --- */
 	ctrl = CreateWindowExW(0, L"BUTTON", L"Item Value Search Settings", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 10, 470, 410, 95, hwndSettings, NULL, hInst, NULL);

@@ -158,7 +158,10 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 				g_Settings.Sliders[idx] = GetDlgItemInt(hwnd, baseSliderID + idx, NULL, FALSE);
 			}
 
-			g_Settings.iBuyMod = GetDlgItemInt(hwnd, IDC_SET_EDIT_BUYMOD, NULL, FALSE);
+			//g_Settings.iBuyMod = GetDlgItemInt(hwnd, IDC_SET_EDIT_BUYMOD, NULL, FALSE);
+			int selectedIndex = (int)SendMessageW(GetDlgItem(hwnd, IDC_SET_EDIT_BUYMOD), CB_GETCURSEL, 0, 0);
+			g_Settings.iBuyMod = ((selectedIndex * 3) / 2) + 4;
+			g_Settings.bShowXPCR = (IsDlgButtonChecked(hwnd, IDC_SET_CHK_SHOW_XP_CR ) == BST_CHECKED);
 			g_Settings.bMatchSingle = (IsDlgButtonChecked(hwnd, IDC_SET_CHK_MATCH_SINGLE) == BST_CHECKED);
 			g_Settings.iMatchSingleVal = GetDlgItemInt(hwnd, IDC_SET_EDIT_MATCH_SINGLE, NULL, FALSE);
 			g_Settings.bMatchTotal = (IsDlgButtonChecked(hwnd, IDC_SET_CHK_MATCH_TOTAL) == BST_CHECKED);

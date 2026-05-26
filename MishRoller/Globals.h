@@ -35,7 +35,8 @@ typedef struct {
 	int Sliders[7];
 
 	// --- Item Value Properties ---
-	int iBuyMod;               // IDC_SET_EDIT_BUYMOD (Default: 7)
+	int iBuyMod;               // IDC_SET_EDIT_BUYMOD (Default: 4)
+	int bShowXPCR;				// Display XP,Creds
 	int bMatchSingle;          // IDC_SET_CHK_MATCH_SINGLE
 	unsigned int iMatchSingleVal;       // IDC_SET_EDIT_MATCH_SINGLE
 	int bMatchTotal;           // IDC_SET_CHK_MATCH_TOTAL

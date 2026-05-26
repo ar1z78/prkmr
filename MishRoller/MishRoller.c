@@ -20,7 +20,8 @@ PROGRAM_SETTINGS g_Settings = {
 	5000,                     // dwWaitTime (4.75 seconds)
 	0, 1, 1, 1, 0, 1, 0,     // The 7 base option checkbox default states
 	{ 50, 50, 50, 50, 50, 50, 50 }, // Array for Sliders: All 7 set to mid-point (50)
-	4,                        // iBuyMod (Trader Shop Multiplier default)
+	4,                        // iBuyMod (selling to terminals Multiplier default)
+	1,					// Display XP,Creds
 	0, 100000,                // Single value search disabled, default 100k
 	0, 100000,                 // Total value search disabled, default 100k
 	0, 1,				// Items match in Buying Agent/ Highlight
@@ -267,16 +268,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	// 2. Construct the path to check if rdb.db exists
 	sprintf_s(DBPath, sizeof(DBPath), "%s\\cd_image\\rdb.db", g_AODir);
-	hOrigDB = CreateFileA(DBPath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 
-	if (hOrigDB == INVALID_HANDLE_VALUE) {
+	// Fast metadata check
+	DWORD dwAttrib = GetFileAttributesA(DBPath);
+	int fileExists = (dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+
+	if (!fileExists) {
 		char err[100];
-		sprintf_s(err, sizeof(err), "System Error Code: %d \nPath: %s", GetLastError(), DBPath);
+		sprintf_s(err, sizeof(err), "File not found or inaccessible.\nPath: %s", DBPath);
 		ShowErrorMessage(err);
 		CleanUp();
 		return -1;
 	}
-	CloseHandle(hOrigDB);
+
+
 
 	// 3. Initialize SQLite and Prepare statements
 	if (!OpenLocalDB()) {

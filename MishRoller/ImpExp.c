@@ -46,6 +46,7 @@ enum
 	CFG_SLIDER_MONEY_XP,
 
 	CFG_BUYMOD,
+	CFG_SHOWXPCR,
 	CFG_ROLLWAIT,
 	CFG_CUSTOM_COLORS,
 	CFG_CUSTOM_FONT,
@@ -90,7 +91,7 @@ struct
 	{ CFG_ITEMVALUE, "ITEMVALUE" },
 
 	{ CFG_BUYMOD, "BUYMOD" },
-
+	{ CFG_SHOWXPCR, "SHOWXPCR" },
 	{ CFG_ROLLWAIT, "ROLLWAIT" },
 	{ CFG_CUSTOM_COLORS, "COLORS" },
 	{ CFG_CUSTOM_FONT, "FONT" },
@@ -196,6 +197,8 @@ void ExportSettings(char* filename)
 	fprintf(fp, "SLIDER_MONEY_XP::%u\n", g_Settings.Sliders[6]);
 
 	fprintf(fp, "BUYMOD::%u\n", g_Settings.iBuyMod);
+
+	fprintf(fp, "SHOWXPCR::%u\n", g_Settings.bShowXPCR);
 
 	fprintf(fp, "ITEMVALUE::%u::%u::%u::%u\n", g_Settings.bMatchTotal, g_Settings.iMatchTotalVal, g_Settings.bMatchSingle, g_Settings.iMatchSingleVal);
 
@@ -439,6 +442,11 @@ void ImportSettings(char* filename)
 				case CFG_BUYMOD:
 					sscanf(Value, "%u", &Val);
 					g_Settings.iBuyMod = Val;
+					break;
+
+				case CFG_SHOWXPCR:
+					sscanf(Value, "%u", &Val);
+					g_Settings.bShowXPCR = Val;
 					break;
 
 				case CFG_ROLLWAIT:

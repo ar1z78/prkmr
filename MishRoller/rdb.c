@@ -12,25 +12,36 @@ sqlite3_stmt* g_stmtPF   = NULL;
 
 int OpenLocalDB(void)
 {
-    char DBPath[MAX_PATH];
-    sprintf(DBPath, "%s\\cd_image\\rdb.db", g_AODir);
-	
-	// Open and immediately check database structure integrity, then pre-prepare statements for the 3 specific tables
-    if (sqlite3_open_v2(DBPath, &g_pSQLite, SQLITE_OPEN_READONLY, NULL) != SQLITE_OK ||
-        sqlite3_exec(g_pSQLite, "PRAGMA quick_check;", NULL, NULL, NULL) != SQLITE_OK ||
-        sqlite3_prepare_v2(g_pSQLite, "SELECT data FROM rdb_1000020 WHERE id = ?;", -1, &g_stmtItem, NULL) != SQLITE_OK ||
-        sqlite3_prepare_v2(g_pSQLite, "SELECT data FROM rdb_1010008 WHERE id = ?;", -1, &g_stmtIcon, NULL) != SQLITE_OK ||
-        sqlite3_prepare_v2(g_pSQLite, "SELECT data FROM rdb_1000001 WHERE id = ?;", -1, &g_stmtPF, NULL) != SQLITE_OK)
-    {
-        if (g_pSQLite) {
-            sqlite3_close(g_pSQLite);
-            g_pSQLite = NULL;
-        }
-        return FALSE;
-    }
+	char DBPath[MAX_PATH];
+	sprintf_s(DBPath, sizeof(DBPath), "%s\\cd_image\\rdb.db", g_AODir);
 
-    return TRUE;
+	// 1. Open the database (Lightweight flag check)
+	if (sqlite3_open_v2(DBPath, &g_pSQLite, SQLITE_OPEN_READONLY, NULL) != SQLITE_OK) {
+		if (g_pSQLite) {
+			sqlite3_close(g_pSQLite);
+			g_pSQLite = NULL;
+		}
+		return FALSE;
+	}
+
+	// 2. Prepare statements (Fast compilation step, no heavy disk scans)
+	if (sqlite3_prepare_v2(g_pSQLite, "SELECT data FROM rdb_1000020 WHERE id = ?;", -1, &g_stmtItem, NULL) != SQLITE_OK ||
+		sqlite3_prepare_v2(g_pSQLite, "SELECT data FROM rdb_1010008 WHERE id = ?;", -1, &g_stmtIcon, NULL) != SQLITE_OK ||
+		sqlite3_prepare_v2(g_pSQLite, "SELECT data FROM rdb_1000001 WHERE id = ?;", -1, &g_stmtPF, NULL) != SQLITE_OK)
+	{
+		// Clean up any successfully prepared statements before closing
+		if (g_stmtItem) { sqlite3_finalize(g_stmtItem); g_stmtItem = NULL; }
+		if (g_stmtIcon) { sqlite3_finalize(g_stmtIcon); g_stmtIcon = NULL; }
+		if (g_stmtPF)   { sqlite3_finalize(g_stmtPF);   g_stmtPF = NULL; }
+
+		sqlite3_close(g_pSQLite);
+		g_pSQLite = NULL;
+		return FALSE;
+	}
+
+	return TRUE;
 }
+
 
 void* GetDataChunk(unsigned long _KeyHi, unsigned long _KeyLo, unsigned long* _pSize)
 {

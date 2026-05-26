@@ -72,8 +72,6 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 	float CoordX, CoordY;
 	unsigned long TempVal, MishPF;
 	unsigned long Cash, XP, MishQL, MishID, TotalValue;
-	//unsigned long Time;
-	//unsigned long ItemKey1, ItemKey2, QL;
 	unsigned long bAlertItem, bAlertLoc, bAlertType;
 	unsigned long bItemFound = FALSE, bLocFound = FALSE, bAlert = FALSE, bTypeFound = FALSE;
 	unsigned long Count = 65536 - 4, DescLength;
@@ -123,48 +121,24 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 	MishID = *(unsigned long*)_pMissionData + 0x04;
 	MishID = EndianSwap32( MishID );
 
-	// Skip header (mission ID, etc.), 6 long words (was 5 pre 16.3)
-	_pMissionData += 6 * 4;
-	if (_pMissionData >= pEndMissionData)
-		return 0;
+	// 1. Skip header and calculate the length of the short description safely
+	_pMissionData += 24;
+	DescLength = (unsigned long)strnlen((const char*)_pMissionData, (size_t)(pEndMissionData - _pMissionData));
 
-	// Short Description: this now a null terminated string as of 16.3? just need to parse it byte at a time?
-	TempVal = *_pMissionData;
-	while (TempVal != 0)
-	{
-		_pMissionData += 1;
-		TempVal = *_pMissionData;
-	}
-	_pMissionData += 1;
+	// 2. Skip short description (+ null terminator), read full description length, and assign pDesc
+	_pMissionData += DescLength + 1;
+	TempVal = EndianSwap32(*(unsigned long*)_pMissionData);
+	pDesc = (_pMissionData += 4);
 
-	if (_pMissionData >= pEndMissionData)
-	{
-		return 0;
-	}
-
-	// Get full description length
-	TempVal = *(unsigned long*)_pMissionData;
-	TempVal = EndianSwap32(TempVal);
-	_pMissionData += 4;
-	if (_pMissionData >= pEndMissionData)
-	{
-		return 0;
-	}
-
-	pDesc = _pMissionData;
+	// 3. Skip full description
+	_pMissionData += TempVal;
 	DescLength = TempVal;
 
-	// Skip full description
-	_pMissionData += TempVal;
-	if (_pMissionData >= pEndMissionData)
-	{
+	// 4. Single structural check (Validates all strings, bounds, and trailing size requirements)
+	if (_pMissionData > pEndMissionData || (pEndMissionData - _pMissionData) < 0xE8)
 		return 0;
-	}
 
-	if ((pEndMissionData - _pMissionData) < 0xe8)
-	{
-		return 0;
-	}
+
 
 #ifdef DEBUG_MISSION_PACKETS
 	WriteDebug("\nAfter Descriptioins:\n");
@@ -211,24 +185,22 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 	// auto expand team mishes
 	GetWindowRect(g_hwndMishBoard, &MWRect);
 	int current_height = MWRect.bottom - MWRect.top;
+	int Wwidth = g_MainWndPos.winW;
 
-	if (NumItems > 2 && g_Settings.bAutoExpand){
-		SetWindowPos(g_hwndMishBoard, NULL, 0, 0, 750, current_height, SWP_NOMOVE | SWP_NOZORDER);
-	}
-	else {
-		SetWindowPos(g_hwndMishBoard, NULL, 0, 0, g_MainWndPos.winW, current_height, SWP_NOMOVE | SWP_NOZORDER);
-	}
+	if (NumItems > 2 && g_Settings.bAutoExpand) Wwidth = 750;
+		SetWindowPos(g_hwndMishBoard, NULL, 0, 0, Wwidth, current_height, SWP_NOMOVE | SWP_NOZORDER);
+
 	_pMissionData = ((unsigned char*)pTmpItem) + 4;
 	if (_pMissionData >= pEndMissionData)
 	{
 		return 0;
 	}
 
-	/*#ifdef DEBUG_MISSION_PACKETS*/
+	#ifdef DEBUG_MISSION_PACKETS
 	WriteDebug("\nAfter Items:\n");
 	DebugPacket(_pMissionData, 0x100);
 	WriteDebug(0);
-	/*#endif*/
+	#endif
 
 	MishQL = *(unsigned long*)(_pMissionData + 0xc);
 	MishQL = EndianSwap32(MishQL);
@@ -239,7 +211,7 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 	{
 		int tilesToProcess = (NumItems > 6) ? 6 : NumItems;
 
-		// Free old active images to prevent dangerous memory leaks
+		// Free old active images to prevent memory leaks
 		if (_pData->pImageData)
 		{
 			free(_pData->pImageData);
@@ -253,7 +225,6 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 		int currentFrameTop = 15 + (g_MishNumber * FRAME_H);
 
 		// 4. Execute the shortened immediate draw engine
-		//		DrawMishIcon(g_hwndMishBoard, g_MishNumber, currentFrameTop, _pData->pImageData);
 		DrawMishIcon(g_hwndMishBoard, g_MishNumber, 0, (unsigned char*)_pData->pImageData);
 	}
 
@@ -279,14 +250,12 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 	sprintf(TempStr, "%s (%.1f, %.1f)", PFName, CoordX, CoordY);
 
 	bLocFound = SetAndSearch((unsigned char*)TempStr, 0, FALSE);
-	//fix 	bLocFound = SetAndSearch(TempStr, puGetObjectFromCollection(_pData->pCol, LOCATION), FALSE);
 	strcpy_s(g_MishBoardData.szMishLoc[g_MishNumber], sizeof(g_MishBoardData.szMishLoc[g_MishNumber]), (char*)TempStr);
 
 
 	// Get Mission Type
 	TempVal = *(unsigned long*)(_pMissionData + 0x28);
 	TempVal = EndianSwap32(TempVal);
-	//fix    bTypeFound = SetAndSearchType( TempVal, puGetObjectFromCollection( _pData->pCol, MISHTYPE ) );
 	bTypeFound = SetAndSearchType(TempVal, 0);
 
 	// Write Stuff to log:
@@ -347,10 +316,6 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 			}
 		}
 
-		// 3. The "Else" logic: Clear the field if nothing was found
-		if (!bFindItemInDesc)
-		{
-		}
 		g_MishBoardData.bMishIsFind[g_MishNumber] = bFindItemInDesc;
 		bItemFound |= bFindItemInDesc;
 		free(pLowerDesc);

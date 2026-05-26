@@ -55,6 +55,7 @@ void DrawGuiMissions(HWND hwnd, HDC hdc) {
 		int col_w;
 		int itemsToRender;
 		int BORDER_W2 = BORDER_W + 15;
+		int checkBoxX;
 
 		char txt_loc[256], txt_type[256], txt_stats[256], txt_total[64];
 		SIZE textSize; // Win32 structure to hold calculated string width (cx) and height (cy)
@@ -89,23 +90,29 @@ void DrawGuiMissions(HWND hwnd, HDC hdc) {
 		currentY = frame_top + BORDER_H;
 
 		// LINE 1: Stats (XP/Cash)
-		SetTextColor(hdc, g_Settings.clrTxt);
-		TextOutA(hdc, BORDER_W2, currentY, txt_stats, (int)strlen(txt_stats));
+		if (g_Settings.bShowXPCR) {
+			//GetTextExtentPoint32A(hdc, txt_stats, (int)strlen(txt_stats), &textSize);
+			SetTextColor(hdc, g_Settings.clrTxt);
+			TextOutA(hdc, BORDER_W2, currentY, txt_stats, (int)strlen(txt_stats));
+			// Measure Line 1's height using active font, then advance currentY
+			currentY += LINE_H;
+			// LINE 2: Total Value Field
+			if (g_MishBoardData.bHilightTotal[m]) SetTextColor(hdc, g_Settings.clrMatch);
+			else SetTextColor(hdc, g_Settings.clrTxt);
+			TextOutA(hdc, BORDER_W2, currentY, txt_total, (int)strlen(txt_total));
+			// Dynamically track Line 2 string dimensions to position the checkbox next to it
+			GetTextExtentPoint32A(hdc, txt_total, (int)strlen(txt_total), &textSize);
+			checkBoxX = BORDER_W2 + textSize.cx + 10; // Placed 10 pixels after the Total string end
+		}
+		else
+		{
+			LINE_H = (FRAME_H - BORDER_H * 2) / 3;
+			checkBoxX = BORDER_W2;
+		}
+		
 
-		// Measure Line 1's height using active font, then advance currentY
-		//GetTextExtentPoint32A(hdc, txt_stats, (int)strlen(txt_stats), &textSize);
-		currentY += LINE_H; // Advance down by height + 2 pixels padding
-
-		// LINE 2: Total Value Field & Aligned Checkbox Placement
-		if (g_MishBoardData.bHilightTotal[m]) SetTextColor(hdc, g_Settings.clrMatch);
-		else SetTextColor(hdc, g_Settings.clrTxt);
-		TextOutA(hdc, BORDER_W2, currentY, txt_total, (int)strlen(txt_total));
-
-		// Dynamically track Line 2 string dimensions to position the checkbox next to it
-		GetTextExtentPoint32A(hdc, txt_total, (int)strlen(txt_total), &textSize);
-
+		// LINE 2: Aligned Checkbox Placement
 		// Render the actual check-box natively shifted by the dynamic text width (textSize.cx)
-		int checkBoxX = BORDER_W2 + textSize.cx + 10; // Placed 10 pixels after the Total string end
 		RECT rcBox = { checkBoxX, currentY, checkBoxX + 13, currentY + 13 };
 		DrawFrameControl(hdc, &rcBox, DFC_BUTTON, boxState);
 
@@ -186,15 +193,21 @@ void DrawGuiMissions(HWND hwnd, HDC hdc) {
 
 			// Measure a test string using the active font to compute dynamic column spacing row jumps
 			GetTextExtentPoint32A(hdc, "QL: 000 Val: 000000", 20, &textSize);
-			int rowHeightShift = (textSize.cy * 2) + 8; // Double the text height + padding
+			int rowHeightShift = (textSize.cy * 2) + 16; // Double the text height + padding
 			cell_y = start_grid_y + (row * rowHeightShift);
 
 			if (g_MishBoardData.szMishLoc[m][0] != '\0') {
-				sprintf_s(line_top, sizeof(line_top), "QL: %d  Val: %d", g_MishBoardData.iMishItemQL[m][i], g_MishBoardData.iMishItemVal[m][i]);
-				sprintf_s(line_bot, sizeof(line_bot), "%s", g_MishBoardData.szMishItemName[m][i]);
+				if (g_Settings.bShowXPCR) {
+					sprintf_s(line_top, sizeof(line_top), "QL: %d  Val: %d", g_MishBoardData.iMishItemQL[m][i], g_MishBoardData.iMishItemVal[m][i]);
+					sprintf_s(line_bot, sizeof(line_bot), "%s", g_MishBoardData.szMishItemName[m][i]);
+				}
+				else{
+					sprintf_s(line_top, sizeof(line_top), "QUALITY: %d", g_MishBoardData.iMishItemQL[m][i]);
+					sprintf_s(line_bot, sizeof(line_bot), "%s", g_MishBoardData.szMishItemName[m][i]);
+				}
 			}
 			else {
-				sprintf_s(line_top, sizeof(line_top), "QL: 0  Val: 0");
+				sprintf_s(line_top, sizeof(line_top), "QL:  -----");
 				sprintf_s(line_bot, sizeof(line_bot), "-");
 			}
 
