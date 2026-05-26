@@ -165,7 +165,7 @@ extern "C" DWORD WINAPI HookManagerThread( void* _pParam )
     MSG msg;
     UINT Timer;
 
-    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL );
+    //SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL );
 
     HookWndClass.cbSize = sizeof( WNDCLASSEX );
     HookWndClass.style = 0;

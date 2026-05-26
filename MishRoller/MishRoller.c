@@ -86,7 +86,6 @@ void CleanUp()
 }
 
 
-// ==================================================================
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	int argc = __argc;
@@ -103,13 +102,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	HWND hwndMishBoard = NULL;  // The NEW window terminal handle running in parallel
 
 	// Set main thread of MishRoller on a priority above normal
-	// Helps a lot. Refreshing of missions infos is much faster.
+	// probably leave it in comments
 	//SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 	HICON hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON1));
 
 	// Get current directory
 	GetCurrentDirectory(MAX_PATH, g_MRDir);
-
 	// Import ALL Settings
 	ImportSettings("LastSettings.mr");
 
@@ -161,8 +159,39 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				SendMessage(hwndMishBoard, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 				SendMessage(hwndMishBoard, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
 			}
+		}
+		// Show the main window 
+		if (g_Settings.bStartMinimized) {
+			ShowWindow(g_hwndMishBoard, SW_MINIMIZE);
+		}
+		else {
+			ShowWindow(g_hwndMishBoard, SW_SHOW);
+		}
 
+		// 2. Overwrite the background color AFTER ImportSettings
+		if (g_hwndMishBoard != NULL) {
+			HBRUSH hNewBgBrush = CreateSolidBrush((COLORREF)g_Settings.clrBg);
 
+			// Changes the background brush for the window handle directly in memory
+			SetClassLongPtrA(g_hwndMishBoard, GCLP_HBRBACKGROUND, (LONG_PTR)hNewBgBrush);
+		}
+
+		// 3. Recursively push the new font to every child element inside our window frame
+		if (g_hwndMishBoard != NULL && g_hFont != NULL) {
+			HWND hChild = GetWindow(g_hwndMishBoard, GW_CHILD);
+			while (hChild != NULL) {
+				// Tell the child control to load the font and force a clean screen layout refresh
+				SendMessageW(hChild, WM_SETFONT, (WPARAM)g_hFont, TRUE);
+				hChild = GetWindow(hChild, GW_HWNDNEXT);
+			}
+			// Force the main settings dialog canvas to clear and re-render
+			InvalidateRect(g_hwndMishBoard, NULL, TRUE);
+			UpdateWindow(g_hwndMishBoard);
+		}
+		if (g_Settings.bGuiOnTop)
+		{
+			// Stay On Top is checked: Force window to the top
+			SetWindowPos(g_hwndMishBoard, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 		}
 	}
 
@@ -266,48 +295,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return -1;
 	}
 
-	// Show the main window 
-	if (g_hwndMishBoard != NULL && g_Settings.bStartMinimized) {
-		ShowWindow(g_hwndMishBoard, SW_MINIMIZE);
-	}
-	else if (g_hwndMishBoard != NULL) {
-		ShowWindow(g_hwndMishBoard, SW_SHOW);
-	}
 
-	if (g_hwndMishBoard != NULL) {
-		UpdateWindow(g_hwndMishBoard);
 
-	}
-
-	// 2. Overwrite the background color AFTER ImportSettings
-	if (g_hwndMishBoard != NULL) {
-		HBRUSH hNewBgBrush = CreateSolidBrush((COLORREF)g_Settings.clrBg);
-
-		// Changes the background brush for the window handle directly in memory
-		SetClassLongPtrA(g_hwndMishBoard, GCLP_HBRBACKGROUND, (LONG_PTR)hNewBgBrush);
-
-		// Force the window frame to clear the canvas and paint the new color instantly
-		InvalidateRect(g_hwndMishBoard, NULL, TRUE);
-		UpdateWindow(g_hwndMishBoard);
-	}
-
-	// 3. Recursively push the new font to every child element inside our window frame
-	if (g_hwndMishBoard != NULL && g_hFont != NULL) {
-		HWND hChild = GetWindow(g_hwndMishBoard, GW_CHILD);
-		while (hChild != NULL) {
-			// Tell the child control to load the font and force a clean screen layout refresh
-			SendMessageW(hChild, WM_SETFONT, (WPARAM)g_hFont, TRUE);
-			hChild = GetWindow(hChild, GW_HWNDNEXT);
-		}
-		// Force the main settings dialog canvas to clear and re-render
-		InvalidateRect(g_hwndMishBoard, NULL, TRUE);
-		UpdateWindow(g_hwndMishBoard);
-	}
-	if (g_Settings.bGuiOnTop)
-	{
-		// Stay On Top is checked: Force window to the top
-		SetWindowPos(g_hwndMishBoard, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-	}
 	MSG msg;
 	while (GetMessage(&msg, NULL, 0, 0)) {
 		TranslateMessage(&msg);

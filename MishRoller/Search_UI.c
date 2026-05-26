@@ -402,7 +402,7 @@ void CreateSearchWindow(HWND hwndParent) {
 
 
 		/* Configuration Target Checkboxes (Swapped to BS_OWNERDRAW and expanded to Height=20 to prevent clipping) */
-		ctrl = CreateWindowExW(0, L"BUTTON", L"Match in Rolling Agent /", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 15, 172 + yShift, 150, 20, hwndSearch, (HMENU)(INT_PTR)baseChkBuyIDs[i], hInst, NULL);
+		ctrl = CreateWindowExW(0, L"BUTTON", L"Match in Rolling Agent", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 15, 172 + yShift, 150, 20, hwndSearch, (HMENU)(INT_PTR)baseChkBuyIDs[i], hInst, NULL);
 		SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 
 		ctrl = CreateWindowExW(0, L"BUTTON", L"Highlight Matches", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 215, 172 + yShift, 130, 20, hwndSearch, (HMENU)(INT_PTR)baseChkHighIDs[i], hInst, NULL);
