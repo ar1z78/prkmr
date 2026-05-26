@@ -1,4 +1,4 @@
-# PRK MishRoller v1.0.0
+# PRK MishRoller v1.0.2
 
 A high-performance, native Win32 mission-rolling and packet-parsing utility custom-tailored for the **Project Rubi-Ka (Anarchy Online)** client. 
 

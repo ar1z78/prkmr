@@ -1,7 +1,7 @@
 #ifndef __MISHROLLER_H__
 #define __MISHROLLER_H__
 
-#define MR_VERSION "1.0.1"
+#define MR_VERSION "1.0.2"
 
 #include <windows.h>
 #include "mission.h"

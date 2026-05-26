@@ -142,7 +142,7 @@ void CreateSettingsWindow(HWND hwndParent) {
 	//SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
 	ctrl = CreateWindowExW(0, L"BUTTON", L"Show XP/Values in Mission UI", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 200, 439, 180, 22, hwndSettings, (HMENU)IDC_SET_CHK_SHOW_XP_CR, hInst, NULL);
 	SendMessageW(ctrl, WM_SETFONT, (WPARAM)g_hFont, TRUE);
-	CheckDlgButton(hwndSettings, IDC_SET_CHK_SHOW_XP_CR, g_Settings.bShowXPCR, FALSE);
+	CheckDlgButton(hwndSettings, IDC_SET_CHK_SHOW_XP_CR, g_Settings.bShowXPCR);
 
 	/* --- VALUE MATCH SEARCH REGIONS --- */
 	ctrl = CreateWindowExW(0, L"BUTTON", L"Item Value Search Settings", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 10, 470, 410, 95, hwndSettings, NULL, hInst, NULL);

@@ -1,5 +1,5 @@
 
-MishRoller 1.0.0 by Ar1z for Project Rubi-Ka
+MishRoller 1.0.2 by Ar1z for Project Rubi-Ka
 =====================================================
 https://github.com/ar1z78/prkmr
 
@@ -92,4 +92,5 @@ show up MishRoller window again). MishRoller doesn't care about the placement of
 
 History
 -------
+1.0.2 - Code cleanup, GUI cleanup, Startup time fixed, Added option to Show/Hide mission XP/Cr
 1.0.0 - Initial version based on ClickSaver 2.8.3 
