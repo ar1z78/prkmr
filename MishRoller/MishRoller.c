@@ -96,7 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	FILE* fp;
 	char AOExePath[256];
 	DWORD dwThreadID;
-	HANDLE hOrigDB;
+	//HANDLE hOrigDB;
 	int bUpdateDB = FALSE;
 	char DBPath[256 * 2];
 	HWND hMainWnd = NULL;       // The old window frame handle

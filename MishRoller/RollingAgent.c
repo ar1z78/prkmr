@@ -21,29 +21,8 @@ UINT_PTR g_TimerID = 0;    // Allocates the single unified global timer variable
 // upper left corner.
 int BuyingAgent(void)
 {
-	HWND AOWnd;
-
-	// Find AO window
-	if (!(AOWnd = FindWindow("Anarchy client", NULL)))
-	{
-		ShowErrorMessage( "Anarchy Online is not running.");
-		g_BuyingAgentCount = 0;
-		g_BuyingAgentMissions = 0;
-		return FALSE;
-	}
-
-	// Close main window
-	if (!g_bFullscreen)
-	{
-		// puSetAttribute( g_MainWin, PUA_WINDOW_OPENED, FALSE );
-
-		// Open buying agent window
-
-		// Set keyboard focus on buying agent window
-	}
-
-	// Delay
-	// Set a timer that will post a WM_TIMER message to the main window after 'delay' ms
+	// Set a timer that will post a WM_TIMER message to the main window 
+	// after the delay set in settings 
 
 	int delay = g_Settings.dwWaitTime;
 	g_TimerID = SetTimer(g_hwndMishBoard, BUYINGAGENT_TIMER, delay, NULL);
@@ -52,39 +31,6 @@ int BuyingAgent(void)
 		//DisplayErrorMessage("Failed to create timer.", TRUE);
 		return FALSE;
 	}
-	// ===================================
-
-	//Moved to MishRoller.c case MRAM_BUYINGAGENT_DOMISSION:
-	/*
-	// Force AO on top
-	SetForegroundWindow(AOWnd);
-
-	// Now we have the absolute position of the upper-left corner
-	// of AO display area on screen. We can now use that
-	// as a basis to generate mouse positions relative to
-	// the AO window.
-
-	// Click on "request mission"
-
-	// Now that we don't have to move the cursor
-	// around to ungray the request button, we
-	// move the mouse only once, to make it
-	// easy to abort the buying agent while
-	// it's running
-	MousePos.x = 99;
-	MousePos.y = 180;
-	lParam = MousePos.y << 16 | MousePos.x;
-
-	if (g_bFirstRound)
-	{
-		ClientToScreen(AOWnd, &MousePos);
-		SetCursorPos(MousePos.x, MousePos.y);
-		g_bFirstRound = FALSE;
-	}
-
-	SendMessage(AOWnd, WM_LBUTTONDOWN, 0, lParam);
-	SendMessage(AOWnd, WM_LBUTTONUP, 0, lParam);
-	*/
 	return TRUE;
 }
 

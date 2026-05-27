@@ -246,9 +246,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	}
 
 	case MRAM_BUYINGAGENT_DOMISSION: {
-										 // Timer expired – send the click if not paused
+										 // Send the click if we have attempts remaining
 										 if (g_BuyingAgentCount > 0)
 										 {
+											 // Find AO window
 											 HWND AOWnd = FindWindowA("Anarchy client", NULL);
 											 if (AOWnd)
 											 {
@@ -279,16 +280,29 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 												 }
 
 												 // Fire physical mouse actions into the client execution stream
+												 Sleep(50);
 												 SendMessageA(AOWnd, WM_LBUTTONDOWN, 0, lParam);
 												 Sleep(50);
 												 SendMessageA(AOWnd, WM_LBUTTONUP, 0, lParam);
+												 // Decrement counter AFTER the click action finishes
+												 g_BuyingAgentCount--;
+											 }
+											 else
+											 {
+												 ShowErrorMessage("Anarchy Online is not running.");
+												 g_BuyingAgentCount = 0;
+												 g_BuyingAgentMissions = 0;
+												 return FALSE;
 											 }
 
-											 // Decrement the remaining attempt metrics counters safely
-											 g_BuyingAgentCount--;
+											 // ONLY queue the next timer cycle if we have remaining attempts!
+											 if (g_BuyingAgentCount > 0) {
+												 BuyingAgent();
+											 }
 										 }
 										 return 0;
 	}
+
 
 	case MRAM_NEWMISSIONS: {
 							   void* pMissionData = g_CurrentPacket;
@@ -316,9 +330,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 							   // 3. AUTOMATION STATE MANAGEMENT
-							   if (g_BuyingAgentCount) {
-								   if (g_BuyingAgentCount) BuyingAgent(); else EndBuyingAgent();
-							   }
+							   //if (g_BuyingAgentCount) {
+								 //  if (g_BuyingAgentCount) BuyingAgent(); else EndBuyingAgent();
+							   //}
 
 							   // 4. RENDERING & UI REFRESH
 							   if (g_hwndMishBoard) {
@@ -334,7 +348,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 							   }
 
 							   // 6. MACRO AUTOMATION (MOUSE CLICKS & KEISTROKES)
-							   if ((g_Settings.bSelectMatch || g_BuyingAgentMissions) && g_FoundMish != 255 && msg != MRAM_STOPBUYINGAGENT) {
+							   if ((g_Settings.bSelectMatch || g_BuyingAgentMissions >= 0) && g_FoundMish != 255 && msg != MRAM_STOPBUYINGAGENT) {
 								   HWND AOWnd = FindWindowA("Anarchy client", NULL);
 								   if (!AOWnd) {
 									   ShowErrorMessage("Project Rubi-Ka is not running.");
@@ -359,14 +373,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 									   clickParam = (MousePos.y << 16) | MousePos.x;
 									   ClientToScreen(AOWnd, &MousePos);
 									   SetCursorPos(MousePos.x, MousePos.y);
-
-									   if (g_BuyingAgentMissions) {
+									   // We matched our final goal mission! Clicked it.
+									   if (g_BuyingAgentMissions > 0){
+										   // Target and click the "Accept" button
 										   SendMessageA(AOWnd, WM_LBUTTONDOWN, 0, clickParam); Sleep(50);
 										   SendMessageA(AOWnd, WM_LBUTTONUP, 0, clickParam);   Sleep(250);
-
 										   // Hit 'E' to open the item/mission terminal again
 										   SendMessageA(AOWnd, WM_KEYDOWN, 0x45, 0); Sleep(50);
 										   SendMessageA(AOWnd, WM_KEYUP, 0x45, 0);   Sleep(250);
+										   //decrease Missions Important
+										   g_BuyingAgentMissions--;
+									   }
+									   // Decide whether to chain another round or stop cleanly
+									   if (g_BuyingAgentMissions > 0) {
 
 										   _setSliders(g_Settings.Sliders[0], g_Settings.Sliders[1], g_Settings.Sliders[2],
 											   g_Settings.Sliders[3], g_Settings.Sliders[4], g_Settings.Sliders[5], g_Settings.Sliders[6]);
@@ -376,8 +395,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 										   g_BuyingAgentCount = strtoul(szBuffer, NULL, 10);
 
 										   BuyingAgent();
-										   g_BuyingAgentMissions--;
+										   
 									   }
+									   else {
+										   
+										   //EndBuyingAgent();
+										   g_BuyingAgentCount = 0;
+									   }
+
 								   }
 							   }
 							   WriteLog(NULL);
@@ -428,11 +453,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 										if (bReadyToGo)
 										{
 											// FIX: Replaced old UI collection value pulls with native edit fields data extraction
-											g_BuyingAgentMissions = g_Settings.iMaxMishes - 1;
+											g_BuyingAgentMissions = g_Settings.iMaxMishes;
 											g_BuyingAgentCount = g_Settings.iMaxTries;
 											g_bFirstRound = TRUE;
-
-											BuyingAgent();
+											// Sent Message to start Rolling Agent
+											PostMessage(hwnd, MRAM_BUYINGAGENT_DOMISSION, 0, 0);
 										}
 										else
 										{
