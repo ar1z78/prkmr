@@ -42,6 +42,22 @@ typedef struct
     unsigned long   Padding;
 } Item;
 
+typedef struct {
+	unsigned long MishID;
+	unsigned long Cash;
+	unsigned long XP;
+	unsigned long MishQL;
+	unsigned long MissionType;
+	unsigned long MishPF;
+	float CoordX;
+	float CoordY;
+	unsigned long NumItems;
+	unsigned long CollectedIconKeys[6];
+	unsigned char* pDesc;
+	unsigned long DescLength;
+	Item* pItemStart;
+	char CharKey[6];
+} ExtractedMissionData;
 
 enum
 {

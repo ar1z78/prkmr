@@ -63,210 +63,197 @@ void DrawMishIcon(HWND hwnd, int mIdx, int frameTop, unsigned char* pImgData)
 	}
 }
 
-
-
-unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsigned char* _pMissionData)
+int ExtractMissionPacketData(unsigned char* _pMissionData, unsigned char* pEndMissionData, ExtractedMissionData* pOut)
 {
-	char TempStr[256], CharKey[6];
-	char PFName[256];
-	float CoordX, CoordY;
-	unsigned long TempVal, MishPF;
-	unsigned long Cash, XP, MishQL, MishID, TotalValue;
-	unsigned long bAlertItem, bAlertLoc, bAlertType;
-	unsigned long bItemFound = FALSE, bLocFound = FALSE, bAlert = FALSE, bTypeFound = FALSE;
-	unsigned long Count = 65536 - 4, DescLength;
-	unsigned char* pEndMissionData;
-	unsigned char* pDesc;
-	Item* pItem;
+	unsigned long TempVal;
+	unsigned char* pWorkingData = _pMissionData;
 	Item* pTmpItem;
-	unsigned long NumItems = 0, i;
-	RECT MWRect;
 
-	pEndMissionData = _pMissionData + 65536 - 4;
-	bAlertItem = g_Settings.bItemBuyAgent;
-	bAlertLoc = g_Settings.bLocBuyAgent;
-	bAlertType = g_Settings.bMishBuyAgent;
+	// Initialize the structure cleanly
+	memset(pOut, 0, sizeof(ExtractedMissionData));
+	strcpy_s(pOut->CharKey, sizeof(pOut->CharKey), "");
 
-	// If one of the watch list is empty, we don't take it into account to decide
-	// whether to show an alertbox or not
-	if (g_WatchLists.itemWatchCount == 0)
-	{
-		bAlertItem = FALSE;
-	}
-
-	if (g_WatchLists.locWatchCount == 0)
-	{
-		bAlertLoc = FALSE;
-	}
-
-	// Find start of mission packet (look for 0xDAC3 longword)
+	// 1. Synchronize to the packet magic word header
 	do
 	{
-		if (_pMissionData >= pEndMissionData)
+		if (pWorkingData >= pEndMissionData)
 		{
-			return 0;
+			return 0; // Out of bounds
 		}
-		_pMissionData++;
-		TempVal = *(unsigned long*)_pMissionData;
+		pWorkingData++;
+		TempVal = *(unsigned long*)pWorkingData;
 		TempVal = EndianSwap32(TempVal);
 	} while (TempVal != 0xdac3);
 
+	pOut->MishID = *(unsigned long*)pWorkingData + 0x04;
+	pOut->MishID = EndianSwap32(pOut->MishID);
 
-#ifdef DEBUG_MISSION_PACKETS // Debug Packet
-	WriteDebug("\nMission Header:\n");
-	DebugPacket(_pMissionData, 6 * 4);
-	WriteDebug(0);
-#endif
+	// 2. Skip header and calculate short description safely
+	pWorkingData += 24;
+	pOut->DescLength = (unsigned long)strnlen((const char*)pWorkingData, (size_t)(pEndMissionData - pWorkingData));
 
-	MishID = *(unsigned long*)_pMissionData + 0x04;
-	MishID = EndianSwap32( MishID );
+	// 3. Skip short description (+ null terminator), read full description length, and mark pDesc
+	pWorkingData += pOut->DescLength + 1;
+	TempVal = EndianSwap32(*(unsigned long*)pWorkingData);
+	pWorkingData += 4;
+	pOut->pDesc = pWorkingData;
 
-	// 1. Skip header and calculate the length of the short description safely
-	_pMissionData += 24;
-	DescLength = (unsigned long)strnlen((const char*)_pMissionData, (size_t)(pEndMissionData - _pMissionData));
+	// 4. Skip full description
+	pWorkingData += TempVal;
+	pOut->DescLength = TempVal; // Hold full description length for later string matching
 
-	// 2. Skip short description (+ null terminator), read full description length, and assign pDesc
-	_pMissionData += DescLength + 1;
-	TempVal = EndianSwap32(*(unsigned long*)_pMissionData);
-	pDesc = (_pMissionData += 4);
+	// 5. Hard structural safety checks
+	if (pWorkingData > pEndMissionData || (pEndMissionData - pWorkingData) < 0xE8)
+	{
+		return 0; // Truncated or malformed block
+	}
 
-	// 3. Skip full description
-	_pMissionData += TempVal;
-	DescLength = TempVal;
+	// 6. Extract financial and item layout data relative to post-description position
+	pOut->Cash = *(unsigned long*)(pWorkingData + 0xc);
+	pOut->Cash = EndianSwap32(pOut->Cash);
 
-	// 4. Single structural check (Validates all strings, bounds, and trailing size requirements)
-	if (_pMissionData > pEndMissionData || (pEndMissionData - _pMissionData) < 0xE8)
-		return 0;
+	pOut->XP = *(unsigned long*)(pWorkingData + 0x14);
+	pOut->XP = EndianSwap32(pOut->XP);
 
+	// Track original location of item array start
+	pOut->pItemStart = (Item*)(pWorkingData + 0x24);
+	pTmpItem = pOut->pItemStart;
 
-
-#ifdef DEBUG_MISSION_PACKETS
-	WriteDebug("\nAfter Descriptioins:\n");
-	DebugPacket(_pMissionData, 0x24);
-	WriteDebug(0);
-#endif
-
-	Cash = *(unsigned long*)(_pMissionData + 0xc);
-	TotalValue = Cash = EndianSwap32(Cash);
-
-	XP = *(unsigned long*)(_pMissionData + 0x14);
-	XP = EndianSwap32(XP);
-
-	// 1. Allocate a local tracking array to safely hold up to 6 icon keys
-	unsigned long collectedIconKeys[6] = { 0 };
-
-	// Get start of items array, and count the number of items
-	pTmpItem = pItem = (Item*)(_pMissionData + 0x24);
-
+	// 7. Loop item structures exactly like your original routine
 	while (pTmpItem->Key1 != 0x2d2d2d2d)
 	{
 		MissionItem sItem;
 		if (!GetAODBItem(&sItem, EndianSwap32(pTmpItem->Key1)))
 		{
-			strncpy(CharKey, (char *)&(pTmpItem->Padding), 4);
-			CharKey[4] = 0;
+			strncpy_s(pOut->CharKey, sizeof(pOut->CharKey), (char *)&(pTmpItem->Padding), 4);
+			pOut->CharKey[4] = 0;
 			break;
 		}
 
-		// 2. Harvest the decoded IconKey cleanly before memory pointers advance
-		if (NumItems < 6)
+		if (pOut->NumItems < 6)
 		{
-			collectedIconKeys[NumItems] = sItem.IconKey;
+			pOut->CollectedIconKeys[pOut->NumItems] = sItem.IconKey;
 		}
 
-		NumItems++;
+		pOut->NumItems++;
 		pTmpItem++;
 
 		if (pEndMissionData < (unsigned char*)pTmpItem)
 		{
-			return 0;
+			return 0; // Memory boundary overrun guard
 		}
 	}
-	// auto expand team mishes
-	GetWindowRect(g_hwndMishBoard, &MWRect);
-	int current_height = MWRect.bottom - MWRect.top;
-	int Wwidth = g_MainWndPos.winW;
 
-	if (NumItems > 2 && g_Settings.bAutoExpand) Wwidth = 750;
-		SetWindowPos(g_hwndMishBoard, NULL, 0, 0, Wwidth, current_height, SWP_NOMOVE | SWP_NOZORDER);
-
-	_pMissionData = ((unsigned char*)pTmpItem) + 4;
-	if (_pMissionData >= pEndMissionData)
+	// 8. Advance working pointer past items to read relative visual properties
+	pWorkingData = ((unsigned char*)pTmpItem) + 4;
+	if (pWorkingData >= pEndMissionData)
 	{
 		return 0;
 	}
 
-	#ifdef DEBUG_MISSION_PACKETS
-	WriteDebug("\nAfter Items:\n");
-	DebugPacket(_pMissionData, 0x100);
-	WriteDebug(0);
-	#endif
+	// 9. Extract Mission details relative to post-items layout pointer
+	pOut->MishQL = *(unsigned long*)(pWorkingData + 0xc);
+	pOut->MishQL = EndianSwap32(pOut->MishQL);
 
-	MishQL = *(unsigned long*)(_pMissionData + 0xc);
-	MishQL = EndianSwap32(MishQL);
+	pOut->MissionType = *(unsigned long*)(pWorkingData + 0x28);
+	pOut->MissionType = EndianSwap32(pOut->MissionType);
+
+	pOut->MishPF = *(unsigned long*)(pWorkingData + 0xA8);
+	pOut->MishPF = EndianSwap32(pOut->MishPF);
+
+	TempVal = *(unsigned long*)(pWorkingData + 0xb4);
+	TempVal = EndianSwap32(TempVal);
+	*(unsigned long*)(&pOut->CoordX) = TempVal;
+
+	TempVal = *(unsigned long*)(pWorkingData + 0xbc);
+	TempVal = EndianSwap32(TempVal);
+	*(unsigned long*)(&pOut->CoordY) = TempVal;
+
+	// Return exact pointer delta to advance downstream reader engines
+	return (int)(pWorkingData - _pMissionData);
+}
 
 
-	// 3. GRID GENERATION ROUTINE
-	if (NumItems > 0)
+unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsigned char* _pMissionData)
+{
+	char TempStr[256];
+	char PFName[256];
+	unsigned long TotalValue;
+	unsigned long bAlertItem, bAlertLoc, bAlertType;
+	unsigned long bItemFound = FALSE, bLocFound = FALSE, bAlert = FALSE, bTypeFound = FALSE;
+	unsigned long i;
+	RECT MWRect;
+	Item* pItem;
+
+	unsigned char* pEndMissionData = _pMissionData + 65536 - 4;
+	ExtractedMissionData missionData;
+
+	bAlertItem = g_Settings.bItemBuyAgent;
+	bAlertLoc = g_Settings.bLocBuyAgent;
+	bAlertType = g_Settings.bMishBuyAgent;
+
+	if (g_WatchLists.itemWatchCount == 0) bAlertItem = FALSE;
+	if (g_WatchLists.locWatchCount == 0)  bAlertLoc = FALSE;
+
+	// Execute the separate packet processing step safely
+	int bytesParsed = ExtractMissionPacketData(_pMissionData, pEndMissionData, &missionData);
+	if (bytesParsed == 0)
 	{
-		int tilesToProcess = (NumItems > 6) ? 6 : NumItems;
+		return 0; // Failed extraction or check boundaries breached
+	}
 
-		// Free old active images to prevent memory leaks
+	// Keep pointer alignment synchronized for subsequent engine calls
+	unsigned char* pFinalMissionData = _pMissionData + bytesParsed;
+
+	// Handle automated board panel size expansion
+	GetWindowRect(g_hwndMishBoard, &MWRect);
+	int current_height = MWRect.bottom - MWRect.top;
+	int Wwidth = g_MainWndPos.winW;
+
+	if (missionData.NumItems > 2 && g_Settings.bAutoExpand) Wwidth = 750;
+	SetWindowPos(g_hwndMishBoard, NULL, 0, 0, Wwidth, current_height, SWP_NOMOVE | SWP_NOZORDER);
+
+	// Composite graphic multi-tile array creation block
+	if (missionData.NumItems > 0)
+	{
+		int tilesToProcess = (missionData.NumItems > 6) ? 6 : missionData.NumItems;
+
 		if (_pData->pImageData)
 		{
 			free(_pData->pImageData);
 			_pData->pImageData = NULL;
 		}
 
-		// Generate the complete combined 48x48 pixel multi-tile array block
-		_pData->pImageData = GetAOIconDataGrid(collectedIconKeys, tilesToProcess);
-
-		// 3. Compute precise vertical offset passing g_MishNumber cleanly
-		int currentFrameTop = 15 + (g_MishNumber * FRAME_H);
-
-		// 4. Execute the shortened immediate draw engine
+		_pData->pImageData = GetAOIconDataGrid(missionData.CollectedIconKeys, tilesToProcess);
 		DrawMishIcon(g_hwndMishBoard, g_MishNumber, 0, (unsigned char*)_pData->pImageData);
 	}
 
-	// Display cash
-	sprintf(_pData->CashStr, "%u", Cash);
-	sprintf(_pData->XPStr, "%u", XP);
-	g_MishBoardData.iMishCash[g_MishNumber] = Cash;
-	g_MishBoardData.iMishXP[g_MishNumber] = XP;
+	// Assign text display attributes
+	sprintf_s(_pData->CashStr, sizeof(_pData->CashStr), "%u", missionData.Cash);
+	sprintf_s(_pData->XPStr, sizeof(_pData->XPStr), "%u", missionData.XP);
+	g_MishBoardData.iMishCash[g_MishNumber] = missionData.Cash;
+	g_MishBoardData.iMishXP[g_MishNumber] = missionData.XP;
+	TotalValue = missionData.Cash;
 
-	// Get playfield (was + 0x98 pre 16.3)
-	TempVal = *(unsigned long*)(_pMissionData + 0xA8);
-	MishPF = TempVal = EndianSwap32(TempVal);
-	MissionPF(TempVal, PFName);
-
-	// Get coordinates (was +0xa4, +0xac pre 16.3)
-	TempVal = *(unsigned long*)(_pMissionData + 0xb4);
-	TempVal = EndianSwap32(TempVal);
-	*(unsigned long*)(&CoordX) = TempVal;
-	TempVal = *(unsigned long*)(_pMissionData + 0xbc);
-	TempVal = EndianSwap32(TempVal);
-	*(unsigned long*)(&CoordY) = TempVal;
-
-	sprintf(TempStr, "%s (%.1f, %.1f)", PFName, CoordX, CoordY);
+	// Evaluate Playfields and Positioning Coordinates
+	MissionPF(missionData.MishPF, PFName);
+	sprintf_s(TempStr, sizeof(TempStr), "%s (%.1f, %.1f)", PFName, missionData.CoordX, missionData.CoordY);
 
 	bLocFound = SetAndSearch((unsigned char*)TempStr, 0, FALSE);
 	strcpy_s(g_MishBoardData.szMishLoc[g_MishNumber], sizeof(g_MishBoardData.szMishLoc[g_MishNumber]), (char*)TempStr);
 
+	// Evaluate core mission types safely using verified value
+	bTypeFound = SetAndSearchType(missionData.MissionType, 0);
 
-	// Get Mission Type
-	TempVal = *(unsigned long*)(_pMissionData + 0x28);
-	TempVal = EndianSwap32(TempVal);
-	bTypeFound = SetAndSearchType(TempVal, 0);
+	// Record data trace to debug logs
+	WriteLog("mission\t%u\t%u\t%u\t%u\t%s\n", missionData.MishID, missionData.MishQL, missionData.XP, missionData.Cash, missionData.CharKey);
+	WriteLog("loc\t%u\t%.1f\t%.1f\t%s\n", missionData.MishPF, missionData.CoordX, missionData.CoordY, PFName);
 
-	// Write Stuff to log:
-	WriteLog("mission\t%u\t%u\t%u\t%u\t%s\n", MishID, MishQL, XP, Cash, CharKey);
-	WriteLog("loc\t%u\t%.1f\t%.1f\t%s\n", MishPF, CoordX, CoordY, PFName);
-
-
-	// Display items
-	for (i = 0; i < NumItems; i++)
+	// Process reward item tables sequentially
+	pItem = missionData.pItemStart;
+	for (i = 0; i < missionData.NumItems; i++)
 	{
-		g_MishBoardData.iMishItemCount[g_MishNumber] = NumItems;
+		g_MishBoardData.iMishItemCount[g_MishNumber] = missionData.NumItems;
 		bItemFound |= ShowItem(_pData, pItem++, i + ITEM1, i + ITEMVAL1, i);
 		TotalValue += _pData->Reward.Value * g_Settings.iBuyMod / 100;
 	}
@@ -282,32 +269,24 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 		g_MishBoardData.bHilightTotal[g_MishNumber] = FALSE;
 	}
 
-	if (NumItems == 0)//&& !g_BuyingAgentCount ) // Special Case.. For Missions with no Item Rewards
-	{
-	}
-
-	// 1. Create a lowercase copy of the description for searching
-	unsigned char* pLowerDesc = malloc(DescLength + 1);
+	// Safe multi-watchlist lowercase scan through full descriptions
+	unsigned char* pLowerDesc = malloc(missionData.DescLength + 1);
 	if (pLowerDesc)
 	{
-		for (i = 0; i < DescLength; i++) {
-			unsigned char c = pDesc[i];
+		for (i = 0; i < missionData.DescLength; i++) {
+			unsigned char c = missionData.pDesc[i];
 			pLowerDesc[i] = (c >= 'A' && c <= 'Z') ? (c + 0x20) : c;
 		}
-		pLowerDesc[DescLength] = 0;
+		pLowerDesc[missionData.DescLength] = 0;
 
-		// 2. Search for watchlist items in the description
 		unsigned long idx;
 		unsigned long bFindItemInDesc = FALSE;
 
-		// Loop directly through global ANSI string array cache memory
 		for (idx = 0; idx < (unsigned long)g_WatchLists.itemWatchCount; ++idx)
 		{
 			unsigned char* pWatchItem = (unsigned char*)g_WatchLists.itemWatchList[idx];
 			if (pWatchItem && *pWatchItem)
 			{
-				// Note: SetAndSearch already lowercases the search term internally, 
-				// so we just need to compare it against our lowercased description.
 				if (strstr((char*)pLowerDesc, (char*)pWatchItem) != NULL)
 				{
 					bFindItemInDesc = TRUE;
@@ -321,11 +300,11 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 		free(pLowerDesc);
 	}
 
-
+	// Consolidated filter evaluation engine
 	bAlert = bAlertItem || bAlertLoc || bAlertType;
 
 	if (bAlertItem) bAlert = bAlert && bItemFound;
-	if (bAlertLoc) bAlert = bAlert && bLocFound;
+	if (bAlertLoc)  bAlert = bAlert && bLocFound;
 	if (bAlertType) bAlert = bAlert && bTypeFound;
 
 	if (bAlert)
@@ -333,20 +312,13 @@ unsigned long MissionParse(unsigned long _Object, MissionClassData* _pData, unsi
 		if (g_FoundMish == 255) g_FoundMish = g_MishNumber;
 		if (g_BuyingAgentCount)
 		{
-			// Found mission, stop buying agent
 			g_BuyingAgentCount = 0;
-		}
-		else
-		{
-			if (g_Settings.bAlertBox && !g_bFullscreen)
-			{
-				//ShowInfoMessage("Mission(s) matches search criteria!");
-			}
 		}
 	}
 
-	return (unsigned long)_pMissionData;
+	return (unsigned long)pFinalMissionData;
 }
+
 
 
 unsigned long ShowItem(MissionClassData* _pData, Item* _pItem, unsigned long _ObjId, unsigned long _ValID, int j)
